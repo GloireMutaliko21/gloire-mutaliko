@@ -90,7 +90,7 @@ export function TagInput({ label, value, onChange, placeholder }: { label: strin
         {value.map((tag) => (
           <span key={tag} className="inline-flex items-center gap-1 rounded-[3px] bg-accent-wash py-0.5 pl-2 pr-1 text-sm text-accent">
             {tag}
-            <button type="button" aria-label={`Retirer ${tag}`} onClick={() => onChange(value.filter((t) => t !== tag))} className="rounded-[2px] p-0.5 hover:bg-accent hover:text-white">
+            <button type="button" aria-label={`Retirer ${tag}`} onClick={() => onChange(value.filter((t) => t !== tag))} className="rounded-[2px] p-0.5 hover:bg-accent hover:text-paper">
               <X size={12} />
             </button>
           </span>
@@ -186,7 +186,7 @@ export function ConfirmButton({ onConfirm, label = "Supprimer", confirmLabel = "
       type="button"
       disabled={disabled}
       onClick={() => (armed ? (setArmed(false), onConfirm()) : setArmed(true))}
-      className={armed ? `${buttonClass.danger} bg-danger text-white` : buttonClass.danger}
+      className={armed ? `${buttonClass.danger} bg-danger text-paper` : buttonClass.danger}
     >
       {armed ? confirmLabel : label}
     </button>

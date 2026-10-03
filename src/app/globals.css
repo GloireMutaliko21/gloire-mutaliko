@@ -18,6 +18,32 @@
   --cat-devops: #d98e04;
   --cat-data: #d6409f;
   --cat-tools: #7a8199;
+
+  /* Viewer backdrop, dark in both themes */
+  --scrim: #0b0d16;
+  color-scheme: light;
+}
+
+/* Dark theme: a deep blue-graphite rather than black, with a lighter indigo
+   so the accent keeps its contrast on dark surfaces. */
+:root[data-theme="dark"] {
+  --paper: #12141f;
+  --surface: #191c2a;
+  --ink: #e8eaf2;
+  --muted: #9ca2b8;
+  --line: #262a3b;
+  --line-strong: #383d54;
+  --accent: #8583ff;
+  --accent-wash: #22234a;
+  --danger: #ff6b74;
+  --success: #3ccf98;
+
+  --cat-frontend: #8583ff;
+  --cat-backend: #2fc4b1;
+  --cat-devops: #f0a92a;
+  --cat-data: #ec6bbd;
+  --cat-tools: #9ba2ba;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -31,6 +57,7 @@
   --color-accent-wash: var(--accent-wash);
   --color-danger: var(--danger);
   --color-success: var(--success);
+  --color-scrim: var(--scrim);
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-bricolage), var(--font-geist), ui-sans-serif, sans-serif;
   --radius-sm: 3px;
@@ -79,12 +106,19 @@ button:disabled {
 
 ::selection {
   background: var(--accent);
-  color: #fff;
+  color: var(--paper);
 }
 
 .font-display {
   font-family: var(--font-display);
   font-optical-sizing: auto;
+}
+
+/* Theme switch: the new theme is revealed by a clip-path circle (see lib/theme.ts). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 /* Long-form text from the CMS: paragraphs separated by blank lines. */

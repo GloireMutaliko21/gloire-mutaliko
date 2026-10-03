@@ -39,7 +39,7 @@ export default async function HistoryPage({ searchParams }: PageProps<"/admin/hi
               key={f.key ?? "all"}
               href={f.key ? `/admin/history?entity=${f.key}` : "/admin/history"}
               aria-current={entity === f.key ? "true" : undefined}
-              className={`rounded-[3px] px-3 py-1 ${entity === f.key ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
+              className={`rounded-[3px] px-3 py-1 ${entity === f.key ? "bg-ink text-paper" : "text-muted hover:text-ink"}`}
             >
               {f.label}
             </Link>

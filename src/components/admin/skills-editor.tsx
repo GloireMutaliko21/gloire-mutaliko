@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Check } from "lucide-react";
 import { deleteSkill, saveSkill } from "@/app/admin/actions";
 import type { SkillCategory, SkillDTO } from "@/lib/types";
-import { CATEGORY_COLORS } from "@/components/three/colors";
+import { categoryColor } from "@/components/three/colors";
 import { AddButton, ConfirmButton } from "./fields";
 import { buttonClass, cardClass, inputClass } from "./styles";
 
@@ -79,7 +79,7 @@ function SkillRow({ row, onSaved, onDeleted }: { row: Row; onSaved: (saved: Row)
     <li className="grid gap-3 border-b border-line px-4 py-3 last:border-b-0 md:grid-cols-[1fr_11rem_8rem_5rem_auto] md:items-center">
       <input aria-label="Nom" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={`${inputClass} mt-0`} placeholder="TypeScript" />
       <div className="flex items-center gap-2">
-        <span className="size-2.5 shrink-0 rounded-full" style={{ background: CATEGORY_COLORS[draft.category] }} aria-hidden />
+        <span className="size-2.5 shrink-0 rounded-full" style={{ background: categoryColor(draft.category) }} aria-hidden />
         <select aria-label="Catégorie" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value as SkillCategory })} className={`${inputClass} mt-0`}>
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>

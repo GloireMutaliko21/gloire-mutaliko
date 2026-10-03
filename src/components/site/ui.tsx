@@ -6,9 +6,9 @@ export function cn(...classes: (string | false | null | undefined)[]) {
 
 export const buttonStyles = {
   primary:
-    "inline-flex items-center justify-center gap-2 rounded-[4px] bg-accent px-5 py-3 text-[0.95rem] font-medium text-white transition-colors hover:bg-ink disabled:opacity-60",
+    "inline-flex items-center justify-center gap-2 rounded-[4px] bg-accent px-5 py-3 text-[0.95rem] font-medium text-paper transition-colors hover:bg-ink disabled:opacity-60",
   secondary:
-    "inline-flex items-center justify-center gap-2 rounded-[4px] border border-ink px-5 py-3 text-[0.95rem] font-medium text-ink transition-colors hover:bg-ink hover:text-white",
+    "inline-flex items-center justify-center gap-2 rounded-[4px] border border-ink px-5 py-3 text-[0.95rem] font-medium text-ink transition-colors hover:bg-ink hover:text-paper",
   quiet:
     "inline-flex items-center gap-2 text-[0.95rem] font-medium text-ink underline decoration-line-strong underline-offset-4 transition-colors hover:text-accent hover:decoration-accent",
 };

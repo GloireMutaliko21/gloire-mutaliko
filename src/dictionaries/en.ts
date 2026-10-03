@@ -11,6 +11,8 @@ const en = {
     close: "Close",
     switchTo: "Version française",
     skip: "Skip to content",
+    toDark: "Switch to dark theme",
+    toLight: "Switch to light theme",
   },
   hero: {
     available: "Open to new projects",

@@ -3,15 +3,19 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
-import { useInView, usePrefersReducedMotion } from "./hooks";
+import { useInView, usePalette, usePrefersReducedMotion, type Palette } from "./hooks";
 
 const RINGS = [
-  { radius: 1.55, tilt: [0.35, 0, 0.2], speed: 0.5, color: "#3d3bf3" },
-  { radius: 1.25, tilt: [1.2, 0.4, 0], speed: -0.7, color: "#1c2033" },
-  { radius: 0.95, tilt: [0.6, 1.1, 0.5], speed: 0.9, color: "#0e9f8e" },
+  { radius: 1.55, tilt: [0.35, 0, 0.2], speed: 0.5, tone: "accent" },
+  { radius: 1.25, tilt: [1.2, 0.4, 0], speed: -0.7, tone: "ink" },
+  { radius: 0.95, tilt: [0.6, 1.1, 0.5], speed: 0.9, tone: "backend" },
 ] as const;
 
-function Ring({ radius, tilt, speed, color, reduced }: (typeof RINGS)[number] & { reduced: boolean }) {
+function toneColor(palette: Palette, tone: (typeof RINGS)[number]["tone"]) {
+  return tone === "backend" ? palette.cats.backend : palette[tone];
+}
+
+function Ring({ radius, tilt, speed, color, reduced }: Omit<(typeof RINGS)[number], "tone"> & { color: string; reduced: boolean }) {
   const spin = useRef<THREE.Group>(null);
   useFrame((_, delta) => {
     if (spin.current && !reduced) spin.current.rotation.z += delta * speed;
@@ -32,7 +36,7 @@ function Ring({ radius, tilt, speed, color, reduced }: (typeof RINGS)[number] & 
   );
 }
 
-function Scene({ reduced }: { reduced: boolean }) {
+function Scene({ reduced, palette }: { reduced: boolean; palette: Palette }) {
   const root = useRef<THREE.Group>(null);
   useFrame(({ pointer, clock }, delta) => {
     if (!root.current || reduced) return;
@@ -42,12 +46,12 @@ function Scene({ reduced }: { reduced: boolean }) {
   });
   return (
     <group ref={root}>
-      {RINGS.map((ring, i) => (
-        <Ring key={i} {...ring} reduced={reduced} />
+      {RINGS.map(({ tone, ...ring }, i) => (
+        <Ring key={i} {...ring} color={toneColor(palette, tone)} reduced={reduced} />
       ))}
       <mesh>
         <sphereGeometry args={[0.22, 32, 32]} />
-        <meshBasicMaterial color="#3d3bf3" />
+        <meshBasicMaterial color={palette.accent} />
       </mesh>
     </group>
   );
@@ -55,11 +59,12 @@ function Scene({ reduced }: { reduced: boolean }) {
 
 export default function OrbitRings() {
   const reduced = usePrefersReducedMotion();
+  const palette = usePalette();
   const [ref, inView] = useInView<HTMLDivElement>();
   return (
     <div ref={ref} className="h-full w-full" aria-hidden>
       <Canvas dpr={[1, 2]} camera={{ position: [0, 0, 5], fov: 40 }} frameloop={inView ? "always" : "never"} gl={{ alpha: true }}>
-        <Scene reduced={reduced} />
+        <Scene reduced={reduced} palette={palette} />
       </Canvas>
     </div>
   );

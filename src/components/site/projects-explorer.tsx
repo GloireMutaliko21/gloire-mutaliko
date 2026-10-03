@@ -35,7 +35,7 @@ export function ProjectsExplorer({ projects, locale, dict }: Props) {
                 onClick={() => setTag(t)}
                 className={cn(
                   "rounded-[3px] border px-3 py-1.5 text-sm transition-colors",
-                  active ? "border-ink bg-ink text-white" : "border-line-strong text-ink hover:border-ink",
+                  active ? "border-ink bg-ink text-paper" : "border-line-strong text-ink hover:border-ink",
                 )}
               >
                 {t ?? dict.all}

@@ -78,7 +78,7 @@ export function Gallery({ images, title, locale, dict }: Props) {
             type="button"
             onClick={() => setViewer(true)}
             aria-label={dict.enlarge}
-            className="absolute right-3 top-3 z-10 rounded-[4px] bg-paper/90 p-2 text-ink backdrop-blur hover:bg-ink hover:text-white"
+            className="absolute right-3 top-3 z-10 rounded-[4px] bg-paper/90 p-2 text-ink backdrop-blur hover:bg-ink hover:text-paper"
           >
             <Maximize2 size={16} />
           </button>
@@ -128,7 +128,7 @@ export function Gallery({ images, title, locale, dict }: Props) {
             role="dialog"
             aria-modal="true"
             aria-label={dict.gallery}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 p-4 md:p-12"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/95 p-4 md:p-12"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -29,7 +29,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/admin/m
               key={f.key}
               href={f.key === "all" ? "/admin/messages" : "/admin/messages?filter=unread"}
               aria-current={filter === f.key ? "true" : undefined}
-              className={`rounded-[3px] px-3 py-1 ${filter === f.key ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
+              className={`rounded-[3px] px-3 py-1 ${filter === f.key ? "bg-ink text-paper" : "text-muted hover:text-ink"}`}
             >
               {f.label}
             </Link>

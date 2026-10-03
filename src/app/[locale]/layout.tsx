@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import "../globals.css";
+import { themeScript } from "@/lib/theme-script";
 import { display, sans } from "../fonts";
 import { getDictionary } from "@/dictionaries";
 import { getProfile } from "@/lib/content";
@@ -36,11 +37,14 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   const profile = await getProfile();
 
   return (
-    <html lang={locale} className={`${display.variable} ${sans.variable}`}>
+    <html lang={locale} className={`${display.variable} ${sans.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-dvh bg-paper text-ink">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-3 focus:py-2 focus:text-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-3 focus:py-2 focus:text-paper"
         >
           {dict.nav.skip}
         </a>

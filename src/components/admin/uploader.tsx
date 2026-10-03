@@ -70,7 +70,7 @@ export function ImagesField({ value, onChange, max = 10, folder = "portfolio/pro
           <li key={img.url} className="overflow-hidden rounded-[6px] border border-line bg-surface">
             <div className="relative aspect-[16/10] bg-paper">
               <Image src={img.url} alt="" fill sizes="300px" className="object-cover" />
-              {i === 0 && <span className="absolute left-2 top-2 rounded-[3px] bg-ink px-1.5 py-0.5 text-[11px] text-white">Couverture</span>}
+              {i === 0 && <span className="absolute left-2 top-2 rounded-[3px] bg-ink px-1.5 py-0.5 text-[11px] text-paper">Couverture</span>}
             </div>
             <div className="space-y-2 p-2.5">
               {(["en", "fr"] as const).map((lang) => (

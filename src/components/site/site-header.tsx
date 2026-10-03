@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { LOCALE_COOKIE, type Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/dictionaries";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type Props = { locale: Locale; name: string; dict: Dictionary["nav"] };
 
@@ -60,6 +61,7 @@ export function SiteHeader({ locale, name, dict }: Props) {
               </Link>
             );
           })}
+          <ThemeToggle toDark={dict.toDark} toLight={dict.toLight} className="p-1 text-ink hover:text-accent" />
           <Link
             href={switchHref}
             onClick={rememberLocale}
@@ -72,9 +74,11 @@ export function SiteHeader({ locale, name, dict }: Props) {
           </Link>
         </nav>
 
+        <div className="-mr-2 flex items-center gap-1 md:hidden">
+        <ThemeToggle toDark={dict.toDark} toLight={dict.toLight} className="p-2" />
         <button
           type="button"
-          className="-mr-2 rounded-sm p-2 md:hidden"
+          className="rounded-sm p-2"
           aria-expanded={open}
           aria-controls="mobile-nav"
           aria-label={open ? dict.close : dict.menu}
@@ -82,6 +86,7 @@ export function SiteHeader({ locale, name, dict }: Props) {
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
+        </div>
       </div>
 
       {open && (

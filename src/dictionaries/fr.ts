@@ -13,6 +13,8 @@ const fr: Dictionary = {
     close: "Fermer",
     switchTo: "English version",
     skip: "Aller au contenu",
+    toDark: "Passer au thème sombre",
+    toLight: "Passer au thème clair",
   },
   hero: {
     available: "Disponible pour de nouveaux projets",

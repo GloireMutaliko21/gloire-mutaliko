@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Dictionary } from "@/dictionaries";
 import { tr, type Locale } from "@/lib/i18n";
 import type { ProfileDTO, ProjectDTO, SkillCategory, SkillDTO } from "@/lib/types";
-import { CATEGORY_COLORS } from "@/components/three/colors";
+import { categoryColor } from "@/components/three/colors";
 import { OrbitRings } from "@/components/three/lazy";
 import { ProjectCard } from "./project-card";
 import { Container, Section, buttonStyles } from "./ui";
@@ -50,7 +50,7 @@ export function Skills({ skills, dict }: { skills: SkillDTO[]; dict: Dictionary 
         {groups.map(({ cat, items }) => (
           <div key={cat}>
             <h3 className="flex items-center gap-2 border-b border-line pb-3 font-medium">
-              <span className="size-2.5 rounded-full" style={{ background: CATEGORY_COLORS[cat] }} aria-hidden />
+              <span className="size-2.5 rounded-full" style={{ background: categoryColor(cat) }} aria-hidden />
               {dict.skills.categories[cat]}
             </h3>
             <ul className="mt-2">
@@ -62,7 +62,7 @@ export function Skills({ skills, dict }: { skills: SkillDTO[]; dict: Dictionary 
                       <span
                         key={n}
                         className="h-2.5 w-[5px] rounded-[1px]"
-                        style={{ background: n <= s.level ? CATEGORY_COLORS[cat] : "var(--line)" }}
+                        style={{ background: n <= s.level ? categoryColor(cat) : "var(--line-strong)" }}
                       />
                     ))}
                   </span>

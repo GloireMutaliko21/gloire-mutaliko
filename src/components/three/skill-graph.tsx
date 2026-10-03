@@ -5,12 +5,11 @@ import { Line, OrbitControls } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import type { SkillCategory } from "@/lib/types";
-import { CATEGORY_COLORS } from "./colors";
-import { usePrefersReducedMotion, useInView } from "./hooks";
+import { usePalette, usePrefersReducedMotion, useInView, type Palette } from "./hooks";
 
 export type GraphSkill = { name: string; category: SkillCategory; level: number };
 
-type Node = GraphSkill & { pos: THREE.Vector3; size: number; color: string };
+type Node = GraphSkill & { pos: THREE.Vector3; size: number };
 type Edge = { a: number; b: number; cross: boolean }; // b === -1 means the core
 
 const CATEGORY_DIRS: Record<SkillCategory, [number, number, number]> = {
@@ -42,7 +41,6 @@ function buildGraph(skills: GraphSkill[]) {
       ...s,
       pos: dir.add(jitter).normalize().multiplyScalar(radius(s.level)),
       size: 0.04 + s.level * 0.012,
-      color: CATEGORY_COLORS[s.category],
     };
   });
 
@@ -99,7 +97,7 @@ function endpoint(nodes: Node[], index: number) {
   return index === -1 ? new THREE.Vector3(0, 0, 0) : nodes[index].pos;
 }
 
-function Graph({ skills, reduced, labelRefs }: { skills: GraphSkill[]; reduced: boolean; labelRefs: RefObject<(HTMLSpanElement | null)[]> }) {
+function Graph({ skills, reduced, labelRefs, palette }: { skills: GraphSkill[]; reduced: boolean; labelRefs: RefObject<(HTMLSpanElement | null)[]>; palette: Palette }) {
   const { nodes, edges } = useMemo(() => buildGraph(skills), [skills]);
   const [hovered, setHovered] = useState<number | null>(null);
   const group = useRef<THREE.Group>(null);
@@ -179,12 +177,12 @@ function Graph({ skills, reduced, labelRefs }: { skills: GraphSkill[]; reduced: 
     <group ref={group}>
       <mesh ref={core}>
         <icosahedronGeometry args={[0.42, 1]} />
-        <meshBasicMaterial color="#1c2033" wireframe transparent opacity={0.55} />
+        <meshBasicMaterial color={palette.ink} wireframe transparent opacity={0.55} />
       </mesh>
 
       {edges.map((e, i) => {
         const active = linked ? linked.has(e.a) && linked.has(e.b) : false;
-        const color = active ? nodes[hovered!].color : e.cross ? "#9aa0b4" : nodes[e.a].color;
+        const color = active ? palette.cats[nodes[hovered!].category] : e.cross ? palette.muted : palette.cats[nodes[e.a].category];
         return (
           <Line
             key={i}
@@ -204,7 +202,7 @@ function Graph({ skills, reduced, labelRefs }: { skills: GraphSkill[]; reduced: 
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[pulsePositions, 3]} />
         </bufferGeometry>
-        <pointsMaterial size={0.06} color="#3d3bf3" transparent opacity={0.9} sizeAttenuation />
+        <pointsMaterial size={0.06} color={palette.accent} transparent opacity={0.9} sizeAttenuation />
       </points>
 
       {nodes.map((n, i) => (
@@ -220,7 +218,7 @@ function Graph({ skills, reduced, labelRefs }: { skills: GraphSkill[]; reduced: 
             onPointerOut={() => setHovered((h) => (h === i ? null : h))}
           >
             <sphereGeometry args={[n.size, 24, 24]} />
-            <meshBasicMaterial color={n.color} />
+            <meshBasicMaterial color={palette.cats[n.category]} />
           </mesh>
         </group>
       ))}
@@ -233,6 +231,7 @@ export default function SkillGraph({ skills, label }: { skills: GraphSkill[]; la
   const [wrapper, inView] = useInView<HTMLDivElement>();
   const [coarse, setCoarse] = useState(false);
   const labelRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const palette = usePalette();
 
   useEffect(() => {
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
@@ -248,7 +247,7 @@ export default function SkillGraph({ skills, label }: { skills: GraphSkill[]; la
         // Let the page scroll on touch screens: rotation is a desktop nicety.
         style={{ touchAction: coarse ? "pan-y" : "none" }}
       >
-        <Graph skills={skills} reduced={reduced} labelRefs={labelRefs} />
+        <Graph skills={skills} reduced={reduced} labelRefs={labelRefs} palette={palette} />
         <OrbitControls
           enabled={!coarse}
           enableZoom={false}

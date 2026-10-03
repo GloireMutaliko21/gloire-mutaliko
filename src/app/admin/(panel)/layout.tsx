@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Message } from "@/models";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { logout } from "../actions";
 
 export const instant = false;
@@ -13,7 +14,7 @@ async function UnreadBadge() {
   const unread = await Message.countDocuments({ read: false });
   if (!unread) return null;
   return (
-    <span className="ml-auto rounded-[3px] bg-accent px-1.5 text-xs font-medium tabular-nums leading-5 text-white">
+    <span className="ml-auto rounded-[3px] bg-accent px-1.5 text-xs font-medium tabular-nums leading-5 text-paper">
       {unread}
       <span className="sr-only"> non lus</span>
     </span>
@@ -36,11 +37,14 @@ export default function PanelLayout({ children }: LayoutProps<"/admin">) {
               </Suspense>
             }
           />
-          <form action={logout} className="md:mt-auto">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 md:mt-auto md:flex-col md:items-start">
+          <ThemeToggle toDark="Thème sombre" toLight="Thème clair" showLabel className="text-sm text-muted hover:text-ink" />
+          <form action={logout}>
             <button type="submit" className="text-sm text-muted hover:text-ink">
               Se déconnecter
             </button>
           </form>
+          </div>
         </div>
       </aside>
       <div className="min-w-0">

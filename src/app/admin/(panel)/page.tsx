@@ -44,7 +44,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/admin"
               key={r}
               href={`/admin?days=${r}`}
               aria-current={r === days ? "true" : undefined}
-              className={`rounded-[3px] px-3 py-1 text-sm tabular-nums ${r === days ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
+              className={`rounded-[3px] px-3 py-1 text-sm tabular-nums ${r === days ? "bg-ink text-paper" : "text-muted hover:text-ink"}`}
             >
               {r} jours
             </Link>

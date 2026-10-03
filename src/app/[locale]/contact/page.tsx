@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getDictionary } from "@/dictionaries";
 import { getProfile } from "@/lib/content";
 import type { Locale } from "@/lib/i18n";
+import { BookingEmbed } from "@/components/site/booking-embed";
 import { ContactForm } from "@/components/site/contact-form";
 import { FloatingShape } from "@/components/three/lazy";
 import { Container } from "@/components/site/ui";
@@ -37,12 +38,7 @@ export default async function ContactPage({ params }: PageProps<"/[locale]/conta
           </h2>
           {profile.calLink ? (
             <div className="mt-6 overflow-hidden rounded-[6px] border border-line bg-surface">
-              <iframe
-                title={dict.contact.bookTitle}
-                src={`https://cal.com/${profile.calLink}?embed=true&theme=light&layout=month_view`}
-                className="h-[680px] w-full"
-                loading="lazy"
-              />
+              <BookingEmbed calLink={profile.calLink} title={dict.contact.bookTitle} />
             </div>
           ) : (
             <p className="mt-4 text-muted">{dict.contact.bookFallback}</p>
