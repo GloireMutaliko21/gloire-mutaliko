@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { connectDB, serialize } from "./db";
-import { Experience, Profile, Project, Skill } from "@/models";
+import { db, must } from "./supabase/server";
+import { fromRow, fromRows } from "./rows";
 import type { ExperienceDTO, ProfileDTO, ProjectDTO, SkillDTO } from "./types";
 
 /** Every public read is tagged with this; admin saves call updateTag(CONTENT_TAG). */
@@ -25,29 +25,31 @@ export const defaultProfile: ProfileDTO = {
   calLink: "",
 };
 
+/** Uncached read, shared by the public cache and the admin pages. */
+export async function readProfile(): Promise<ProfileDTO> {
+  const row = must(await db().from("profile").select("*").order("created_at").limit(1).maybeSingle());
+  return row ? { ...defaultProfile, ...fromRow<ProfileDTO>(row) } : defaultProfile;
+}
+
 export async function getProfile(): Promise<ProfileDTO> {
   "use cache";
   cacheTag(CONTENT_TAG);
   cacheLife("days");
-  await connectDB();
-  const doc = await Profile.findOne().lean();
-  return doc ? { ...defaultProfile, ...serialize<ProfileDTO>(doc) } : defaultProfile;
+  return readProfile();
 }
 
 export async function getSkills(): Promise<SkillDTO[]> {
   "use cache";
   cacheTag(CONTENT_TAG);
   cacheLife("days");
-  await connectDB();
-  return serialize(await Skill.find().sort({ order: 1, name: 1 }).lean());
+  return fromRows(must(await db().from("skills").select("*").order("sort_order").order("name")));
 }
 
 export async function getExperiences(): Promise<ExperienceDTO[]> {
   "use cache";
   cacheTag(CONTENT_TAG);
   cacheLife("days");
-  await connectDB();
-  const items = serialize<ExperienceDTO[]>(await Experience.find().lean());
+  const items = fromRows<ExperienceDTO>(must(await db().from("experiences").select("*")));
   // Current roles first, then most recent start date; "order" breaks ties.
   return items.sort((a, b) => {
     if (!a.end !== !b.end) return a.end ? 1 : -1;
@@ -59,17 +61,17 @@ export async function getProjects(): Promise<ProjectDTO[]> {
   "use cache";
   cacheTag(CONTENT_TAG);
   cacheLife("days");
-  await connectDB();
-  return serialize(await Project.find({ published: true }).sort({ order: 1, year: -1 }).lean());
+  return fromRows(
+    must(await db().from("projects").select("*").eq("published", true).order("sort_order").order("year", { ascending: false })),
+  );
 }
 
 export async function getProjectBySlug(slug: string): Promise<ProjectDTO | null> {
   "use cache";
   cacheTag(CONTENT_TAG);
   cacheLife("days");
-  await connectDB();
-  const doc = await Project.findOne({ slug, published: true }).lean();
-  return doc ? serialize(doc) : null;
+  const row = must(await db().from("projects").select("*").eq("slug", slug).eq("published", true).maybeSingle());
+  return row ? fromRow<ProjectDTO>(row) : null;
 }
 
 /** Ranks other projects by shared tags, then recency. */

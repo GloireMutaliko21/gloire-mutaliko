@@ -16,10 +16,10 @@ const CATEGORIES: { value: SkillCategory; label: string }[] = [
   { value: "tools", label: "Outillage" },
 ];
 
-type Row = Omit<SkillDTO, "_id"> & { _id?: string; key: string };
+type Row = Omit<SkillDTO, "id"> & { id?: string; key: string };
 
 export function SkillsEditor({ initial }: { initial: SkillDTO[] }) {
-  const [rows, setRows] = useState<Row[]>(initial.map((s) => ({ ...s, key: s._id })));
+  const [rows, setRows] = useState<Row[]>(initial.map((s) => ({ ...s, key: s.id })));
 
   return (
     <div className={`${cardClass} overflow-hidden`}>
@@ -60,14 +60,14 @@ function SkillRow({ row, onSaved, onDeleted }: { row: Row; onSaved: (saved: Row)
   const [draft, setDraft] = useState(row);
   const [pending, start] = useTransition();
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(row) || !row._id;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(row) || !row.id;
 
   const save = () =>
     start(async () => {
       const { key: _key, ...data } = draft;
-      const res = await saveSkill({ ...data, _id: row._id });
+      const res = await saveSkill({ ...data, id: row.id });
       if (res.ok) {
-        const saved = { ...draft, _id: res.data!.id };
+        const saved = { ...draft, id: res.data!.id };
         setDraft(saved);
         onSaved(saved);
         setStatus({ ok: true, text: "Enregistré" });
@@ -100,9 +100,9 @@ function SkillRow({ row, onSaved, onDeleted }: { row: Row; onSaved: (saved: Row)
           confirmLabel="Sûr ?"
           disabled={pending}
           onConfirm={() =>
-            row._id
+            row.id
               ? start(async () => {
-                  const res = await deleteSkill(row._id!);
+                  const res = await deleteSkill(row.id!);
                   if (res.ok) onDeleted();
                 })
               : onDeleted()

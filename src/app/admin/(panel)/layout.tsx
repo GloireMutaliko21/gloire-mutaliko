@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { connectDB } from "@/lib/db";
-import { Message } from "@/models";
+import { db } from "@/lib/supabase/server";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { logout } from "../actions";
@@ -10,8 +9,7 @@ export const instant = false;
 
 async function UnreadBadge() {
   await connection();
-  await connectDB();
-  const unread = await Message.countDocuments({ read: false });
+  const { count: unread } = await db().from("messages").select("id", { count: "exact", head: true }).eq("read", false);
   if (!unread) return null;
   return (
     <span className="ml-auto rounded-[3px] bg-accent px-1.5 text-xs font-medium tabular-nums leading-5 text-paper">

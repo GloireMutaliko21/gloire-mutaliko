@@ -49,7 +49,7 @@ export function ProjectsExplorer({ projects, locale, dict }: Props) {
         <AnimatePresence mode="popLayout">
           {visible.map((p, i) => (
             <motion.div
-              key={p._id}
+              key={p.id}
               layout
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}

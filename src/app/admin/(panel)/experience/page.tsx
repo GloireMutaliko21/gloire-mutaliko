@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, serialize } from "@/lib/db";
+import { fromRows } from "@/lib/rows";
+import { db, must } from "@/lib/supabase/server";
 import { formatMonth } from "@/lib/i18n";
 import type { ExperienceDTO } from "@/lib/types";
-import { Experience } from "@/models";
 import { PageHeader } from "@/components/admin/page-header";
 import { buttonClass, cardClass } from "@/components/admin/styles";
 
@@ -12,8 +12,7 @@ export const metadata = { title: "Expériences" };
 
 export default async function ExperienceListPage() {
   await requireAdmin();
-  await connectDB();
-  const items = serialize<ExperienceDTO[]>(await Experience.find().sort({ start: -1 }).lean());
+  const items = fromRows<ExperienceDTO>(must(await db().from("experiences").select("*").order("start_month", { ascending: false })));
 
   return (
     <>
@@ -28,8 +27,8 @@ export default async function ExperienceListPage() {
       ) : (
         <ul className={`${cardClass} divide-y divide-line`}>
           {items.map((x) => (
-            <li key={x._id}>
-              <Link href={`/admin/experience/${x._id}`} className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-4 hover:bg-paper">
+            <li key={x.id}>
+              <Link href={`/admin/experience/${x.id}`} className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-4 hover:bg-paper">
                 <span>
                   <span className="font-medium">{x.role.fr || x.role.en}</span>
                   <span className="text-muted"> · {x.company}</span>

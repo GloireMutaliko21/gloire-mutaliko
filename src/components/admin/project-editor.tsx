@@ -23,7 +23,7 @@ function slugify(value: string) {
 export function ProjectEditor({ initial }: { initial: ProjectDraft }) {
   const router = useRouter();
   const [p, setP] = useState(initial);
-  const [slugTouched, setSlugTouched] = useState(Boolean(initial._id));
+  const [slugTouched, setSlugTouched] = useState(Boolean(initial.id));
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult<unknown> | null>(null);
   const set = <K extends keyof ProjectDraft>(k: K, v: ProjectDraft[K]) => setP((prev) => ({ ...prev, [k]: v }));
@@ -37,7 +37,7 @@ export function ProjectEditor({ initial }: { initial: ProjectDraft }) {
         start(async () => {
           const res = await saveProject(p);
           setResult(res);
-          if (res.ok && !p._id) router.replace(`/admin/projects/${res.data!.id}`);
+          if (res.ok && !p.id) router.replace(`/admin/projects/${res.data!.id}`);
         });
       }}
     >
@@ -94,17 +94,17 @@ export function ProjectEditor({ initial }: { initial: ProjectDraft }) {
       </section>
 
       <SaveBar pending={pending} result={result}>
-        {p._id && p.published && (
+        {p.id && p.published && (
           <a href={`/fr/projects/${initial.slug}`} target="_blank" className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
             Voir la page <ExternalLink size={13} aria-hidden />
           </a>
         )}
-        {p._id && (
+        {p.id && (
           <div className="ml-auto">
             <ConfirmButton
               onConfirm={() =>
                 start(async () => {
-                  const res = await deleteProject(p._id!);
+                  const res = await deleteProject(p.id!);
                   if (res.ok) router.push("/admin/projects");
                   else setResult(res);
                 })

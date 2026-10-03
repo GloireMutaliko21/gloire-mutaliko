@@ -6,8 +6,8 @@ const url = z.union([z.literal(""), z.url({ protocol: /^https?$/ })]);
 const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Format attendu : AAAA-MM");
 
 export const assetSchema = z.object({
-  url: z.url({ protocol: /^https$/ }),
-  publicId: z.string().default(""),
+  url: z.url({ protocol: /^https?$/ }),
+  path: z.string().default(""),
   width: z.number().optional(),
   height: z.number().optional(),
   alt: l10nSchema(200).optional(),
@@ -24,13 +24,13 @@ export const profileInput = z.object({
   available: z.boolean(),
   availability: l10nSchema(160),
   avatar: assetSchema.nullable(),
-  cv: z.object({ url: z.url(), publicId: z.string(), fileName: z.string() }).nullable(),
+  cv: z.object({ url: z.url(), path: z.string(), fileName: z.string() }).nullable(),
   socials: z.array(z.object({ label: text(40).min(1), url: z.url() })).max(12),
   calLink: text(200).regex(/^[\w\-/]*$/, "Exemple : gloire/30min"),
 });
 
 export const skillInput = z.object({
-  _id: z.string().optional(),
+  id: z.uuid().optional(),
   name: text(60).min(1, "Nom requis"),
   category: z.enum(["frontend", "backend", "devops", "data", "tools"]),
   level: z.number().int().min(1).max(5),
@@ -39,7 +39,7 @@ export const skillInput = z.object({
 
 export const experienceInput = z
   .object({
-    _id: z.string().optional(),
+    id: z.uuid().optional(),
     company: text(120).min(1, "Entreprise requise"),
     companyUrl: url,
     role: l10nSchema(120),
@@ -56,7 +56,7 @@ export const experienceInput = z
 
 export const projectInput = z
   .object({
-    _id: z.string().optional(),
+    id: z.uuid().optional(),
     slug: z
       .string()
       .trim()

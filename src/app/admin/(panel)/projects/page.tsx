@@ -2,9 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, serialize } from "@/lib/db";
+import { fromRows } from "@/lib/rows";
+import { db, must } from "@/lib/supabase/server";
 import type { ProjectDTO } from "@/lib/types";
-import { Project } from "@/models";
 import { PageHeader } from "@/components/admin/page-header";
 import { buttonClass, cardClass } from "@/components/admin/styles";
 
@@ -12,8 +12,9 @@ export const metadata = { title: "Projets" };
 
 export default async function ProjectsListPage() {
   await requireAdmin();
-  await connectDB();
-  const projects = serialize<ProjectDTO[]>(await Project.find().sort({ order: 1, year: -1 }).lean());
+  const projects = fromRows<ProjectDTO>(
+    must(await db().from("projects").select("*").order("sort_order").order("year", { ascending: false })),
+  );
 
   return (
     <>
@@ -28,8 +29,8 @@ export default async function ProjectsListPage() {
       ) : (
         <ul className={`${cardClass} divide-y divide-line`}>
           {projects.map((p) => (
-            <li key={p._id}>
-              <Link href={`/admin/projects/${p._id}`} className="flex items-center gap-4 px-4 py-3 hover:bg-paper">
+            <li key={p.id}>
+              <Link href={`/admin/projects/${p.id}`} className="flex items-center gap-4 px-4 py-3 hover:bg-paper">
                 <span className="relative h-12 w-[4.5rem] shrink-0 overflow-hidden rounded-[3px] bg-accent-wash">
                   {p.images[0] && <Image src={p.images[0].url} alt="" fill sizes="72px" className="object-cover" />}
                 </span>

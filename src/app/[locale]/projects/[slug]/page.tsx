@@ -120,7 +120,7 @@ async function ProjectDetail({ params }: Pick<Props, "params">) {
             </h2>
             <div className="mt-10 grid gap-x-8 gap-y-14 md:grid-cols-3">
               {similar.map((p) => (
-                <ProjectCard key={p._id} project={p} locale={locale} viewLabel={dict.projects.view} />
+                <ProjectCard key={p.id} project={p} locale={locale} viewLabel={dict.projects.view} />
               ))}
             </div>
           </Container>

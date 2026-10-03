@@ -26,7 +26,7 @@ export function ExperienceTimeline({ items, locale, dict }: Props) {
       {items.map((job) => {
         const highlights = job.highlights.map((h) => tr(h, locale)).filter(Boolean);
         return (
-          <li key={job._id} className="relative grid gap-3 pb-14 pl-10 last:pb-0 md:grid-cols-9 md:gap-8">
+          <li key={job.id} className="relative grid gap-3 pb-14 pl-10 last:pb-0 md:grid-cols-9 md:gap-8">
             <span
               className={`absolute left-0 top-[0.4rem] size-[11px] rounded-full border-2 bg-paper ${
                 job.end ? "border-line-strong" : "border-accent"

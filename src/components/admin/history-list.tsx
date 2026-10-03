@@ -20,7 +20,7 @@ const ACTION_LABELS: Record<RevisionDTO["action"], { label: string; className: s
 /** Fields that changed between this snapshot and the previous version of the same document. */
 function changedFields(rev: RevisionDTO, previous?: RevisionDTO) {
   if (!previous || rev.action === "delete") return [];
-  const ignore = new Set(["_id", "__v", "createdAt", "updatedAt"]);
+  const ignore = new Set(["id", "createdAt", "updatedAt"]);
   const keys = new Set([...Object.keys(rev.snapshot), ...Object.keys(previous.snapshot)]);
   return [...keys].filter((k) => !ignore.has(k) && JSON.stringify(rev.snapshot[k]) !== JSON.stringify(previous.snapshot[k]));
 }
@@ -46,7 +46,7 @@ export function HistoryList({ revisions, latestVersion }: { revisions: RevisionD
         const isCurrent = latestVersion[rev.entityId] === rev.version && rev.action !== "delete";
         const action = ACTION_LABELS[rev.action];
         return (
-          <li key={rev._id} className="px-5 py-4">
+          <li key={rev.id} className="px-5 py-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p>
@@ -67,21 +67,21 @@ export function HistoryList({ revisions, latestVersion }: { revisions: RevisionD
                   type="button"
                   disabled={pending}
                   onClick={() => {
-                    setBusy(rev._id);
+                    setBusy(rev.id);
                     start(async () => {
-                      const res = await restoreVersion(rev._id);
-                      setFeedback({ id: rev._id, ok: res.ok, text: res.ok ? "Version restaurée" : res.error });
+                      const res = await restoreVersion(rev.id);
+                      setFeedback({ id: rev.id, ok: res.ok, text: res.ok ? "Version restaurée" : res.error });
                       setBusy(null);
                     });
                   }}
                   className={buttonClass.secondary}
                 >
                   <RotateCcw size={14} aria-hidden />
-                  {busy === rev._id ? "Restauration…" : rev.action === "delete" ? "Recréer" : "Restaurer cette version"}
+                  {busy === rev.id ? "Restauration…" : rev.action === "delete" ? "Recréer" : "Restaurer cette version"}
                 </button>
               )}
             </div>
-            {feedback?.id === rev._id && (
+            {feedback?.id === rev.id && (
               <p role="status" className={`mt-2 text-sm ${feedback.ok ? "text-success" : "text-danger"}`}>
                 {feedback.text}
               </p>

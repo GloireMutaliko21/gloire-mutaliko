@@ -3,11 +3,18 @@
  * Every entry is a placeholder: edit or replace it from /admin.
  *
  *   pnpm seed            # only seeds collections that are empty
- *   pnpm seed --force    # wipes content collections first (messages and analytics untouched)
+ *   pnpm seed --force    # wipes content tables first (messages and analytics untouched)
  */
-import mongoose from "mongoose";
-import { connectDB } from "../src/lib/db";
-import { Experience, Profile, Project, Revision, Skill } from "../src/models";
+import { createClient } from "@supabase/supabase-js";
+import { fromRow, toRow } from "../src/lib/rows";
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.SUPABASE_SECRET_KEY;
+if (!url || !key) {
+  console.error("Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in .env.local first.");
+  process.exit(1);
+}
+const db = createClient(url, key, { auth: { persistSession: false } });
 
 const force = process.argv.includes("--force");
 
@@ -188,47 +195,54 @@ const projects = [
   },
 ];
 
-async function seedCollection<T>(
-  name: string,
-  entity: "profile" | "skill" | "experience" | "project",
-  model: mongoose.Model<T>,
-  docs: Record<string, unknown>[],
-) {
-  if (force) await model.deleteMany({});
-  if ((await model.estimatedDocumentCount()) > 0) {
-    console.log(`- ${name}: already has data, skipped`);
+type Entity = "profile" | "skill" | "experience" | "project";
+
+async function seedTable(table: string, entity: Entity, items: Record<string, unknown>[], ordered = true) {
+  if (force) {
+    const { error } = await db.from(table).delete().not("id", "is", null);
+    if (error) throw error;
+  }
+  const { count, error: countError } = await db.from(table).select("id", { count: "exact", head: true });
+  if (countError) throw countError;
+  if (count) {
+    console.log(`- ${table}: already has data, skipped`);
     return;
   }
-  const created = await model.insertMany(docs.map((d, i) => ({ order: i, ...d })));
-  await Revision.insertMany(
-    created.map((doc) => {
-      const snapshot = JSON.parse(JSON.stringify(doc));
-      return {
-        entity,
-        entityId: doc._id,
-        version: 1,
-        action: "create",
-        label: String(snapshot.name ?? snapshot.company ?? snapshot.title?.fr ?? ""),
-        snapshot,
-      };
-    }),
-  );
-  console.log(`- ${name}: ${created.length} added`);
+  const { data, error } = await db
+    .from(table)
+    .insert(items.map((item, i) => toRow(ordered ? { order: i, ...item } : item)))
+    .select();
+  if (error) throw error;
+  const revisions = data.map((row) => {
+    const snapshot = fromRow<Record<string, unknown>>(row);
+    const title = snapshot.title as { fr?: string } | undefined;
+    return {
+      entity,
+      entity_id: row.id,
+      version: 1,
+      action: "create",
+      label: String(snapshot.name ?? snapshot.company ?? title?.fr ?? ""),
+      snapshot,
+    };
+  });
+  const { error: revError } = await db.from("revisions").insert(revisions);
+  if (revError) throw revError;
+  console.log(`- ${table}: ${data.length} added`);
 }
 
 async function main() {
-  await connectDB();
-  if (force) await Revision.deleteMany({});
-  await seedCollection("profile", "profile", Profile, [profile]);
-  await seedCollection("skills", "skill", Skill, skills);
-  await seedCollection("experiences", "experience", Experience, experiences);
-  await seedCollection("projects", "project", Project, projects.map((p) => ({ published: true, images: [], ...p })));
-  await mongoose.disconnect();
+  if (force) {
+    const { error } = await db.from("revisions").delete().not("id", "is", null);
+    if (error) throw error;
+  }
+  await seedTable("profile", "profile", [profile], false);
+  await seedTable("skills", "skill", skills);
+  await seedTable("experiences", "experience", experiences);
+  await seedTable("projects", "project", projects.map((p) => ({ published: true, images: [], ...p })));
   console.log("Done. Restart `pnpm dev` (or save a change in /admin) to refresh cached pages.");
 }
 
-main().catch(async (error) => {
+main().catch((error) => {
   console.error(error);
-  await mongoose.disconnect();
   process.exit(1);
 });

@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Types } from "mongoose";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, serialize } from "@/lib/db";
+import { fromRows } from "@/lib/rows";
+import { db, must } from "@/lib/supabase/server";
 import type { RevisionDTO } from "@/lib/types";
-import { Revision, VERSIONED_ENTITIES } from "@/models";
+
+const VERSIONED_ENTITIES = ["profile", "skill", "experience", "project"] as const;
 import { HistoryList } from "@/components/admin/history-list";
 import { ENTITY_LABELS } from "@/components/admin/labels";
 import { PageHeader } from "@/components/admin/page-header";
@@ -14,16 +15,17 @@ export default async function HistoryPage({ searchParams }: PageProps<"/admin/hi
   await requireAdmin();
   const requested = (await searchParams).entity;
   const entity = (VERSIONED_ENTITIES as readonly string[]).includes(String(requested)) ? String(requested) : null;
-  await connectDB();
+  let query = db().from("revisions").select("*").order("created_at", { ascending: false }).limit(150);
+  if (entity) query = query.eq("entity", entity);
+  const revisions = fromRows<RevisionDTO>(must(await query));
 
-  const revisions = serialize<RevisionDTO[]>(
-    await Revision.find(entity ? { entity } : {}).sort({ createdAt: -1 }).limit(150).lean(),
-  );
-  const latest = await Revision.aggregate<{ _id: string; version: number }>([
-    { $match: { entityId: { $in: [...new Set(revisions.map((r) => r.entityId))].map((id) => new Types.ObjectId(id)) } } },
-    { $group: { _id: "$entityId", version: { $max: "$version" } } },
-  ]);
-  const latestVersion = Object.fromEntries(latest.map((l) => [String(l._id), l.version]));
+  // Newest version of each listed item, to mark which one is live.
+  const ids = [...new Set(revisions.map((r) => r.entityId))];
+  const versions = ids.length
+    ? must(await db().from("revisions").select("entity_id, version").in("entity_id", ids))
+    : [];
+  const latestVersion: Record<string, number> = {};
+  for (const v of versions ?? []) latestVersion[v.entity_id] = Math.max(latestVersion[v.entity_id] ?? 0, v.version);
 
   const filters = [{ key: null, label: "Tout" }, ...VERSIONED_ENTITIES.map((e) => ({ key: e, label: ENTITY_LABELS[e] }))];
 

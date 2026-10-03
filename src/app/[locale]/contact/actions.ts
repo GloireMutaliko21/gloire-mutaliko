@@ -2,10 +2,9 @@
 
 import { z } from "zod";
 import { headers } from "next/headers";
-import { connectDB } from "@/lib/db";
 import { clientCountry, clientIp, rateLimit } from "@/lib/rate-limit";
 import { contactInput } from "@/lib/schemas";
-import { Message } from "@/models";
+import { db } from "@/lib/supabase/server";
 
 export type ContactState = {
   status: "idle" | "sent" | "invalid" | "rate" | "server";
@@ -40,12 +39,10 @@ export async function sendMessage(prev: ContactState, formData: FormData): Promi
   const h = await headers();
   if (!rateLimit(`contact:${clientIp(h)}`, 5, 60 * 60 * 1000).ok) return { status: "rate", values, attempt };
 
-  try {
-    await connectDB();
-    await Message.create({ ...parsed.data, country: clientCountry(h) });
-    return { status: "sent" };
-  } catch (error) {
-    console.error("contact: could not save message", error);
+  const { error } = await db().from("messages").insert({ ...parsed.data, country: clientCountry(h) });
+  if (error) {
+    console.error("contact: could not save message", error.message);
     return { status: "server", values, attempt };
   }
+  return { status: "sent" };
 }

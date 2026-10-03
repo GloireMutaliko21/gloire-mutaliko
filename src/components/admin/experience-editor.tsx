@@ -25,7 +25,7 @@ export function ExperienceEditor({ initial }: { initial: ExperienceDraft }) {
         start(async () => {
           const res = await saveExperience(x);
           setResult(res);
-          if (res.ok && !x._id) router.replace(`/admin/experience/${res.data!.id}`);
+          if (res.ok && !x.id) router.replace(`/admin/experience/${res.data!.id}`);
         });
       }}
     >
@@ -79,12 +79,12 @@ export function ExperienceEditor({ initial }: { initial: ExperienceDraft }) {
       </section>
 
       <SaveBar pending={pending} result={result}>
-        {x._id && (
+        {x.id && (
           <div className="ml-auto">
             <ConfirmButton
               onConfirm={() =>
                 start(async () => {
-                  const res = await deleteExperience(x._id!);
+                  const res = await deleteExperience(x.id!);
                   if (res.ok) router.push("/admin/experience");
                   else setResult(res);
                 })

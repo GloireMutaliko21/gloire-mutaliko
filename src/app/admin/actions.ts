@@ -3,18 +3,17 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { refresh, updateTag } from "next/cache";
-import { Types } from "mongoose";
 import { z } from "zod";
 import { endAdminSession, requireAdmin, startAdminSession } from "@/lib/auth";
-import { cloudinaryConfigured, signUploadParams, UPLOAD_FOLDERS, type UploadFolder } from "@/lib/cloudinary";
 import { CONTENT_TAG } from "@/lib/content";
-import { connectDB } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { toRow } from "@/lib/rows";
 import { experienceInput, profileInput, projectInput, skillInput } from "@/lib/schemas";
-import type { ActionResult } from "@/lib/types";
-import { recordRevision, restoreRevision } from "@/lib/versioning";
-import { Experience, Message, Profile, Project, Skill, type VersionedEntity } from "@/models";
+import { createUpload, UPLOAD_FOLDERS, type UploadFolder } from "@/lib/storage";
+import { db, must } from "@/lib/supabase/server";
+import type { ActionResult, VersionedEntity } from "@/lib/types";
+import { ENTITY_TABLES, recordRevision, restoreRevision } from "@/lib/versioning";
 
 /* Auth */
 
@@ -43,6 +42,8 @@ export async function logout() {
 
 /* Helpers */
 
+const uuid = z.uuid();
+
 function invalid(error: z.ZodError): ActionResult<never> {
   const flat = z.flattenError(error);
   const first = flat.formErrors[0] ?? Object.values(flat.fieldErrors).flat()[0];
@@ -54,42 +55,30 @@ function contentChanged() {
   refresh();
 }
 
-function isId(id: unknown): id is string {
-  return typeof id === "string" && Types.ObjectId.isValid(id);
-}
-
-async function saveVersioned<T extends { _id?: string }>(
-  entity: VersionedEntity,
-  Model: typeof Skill | typeof Experience | typeof Project,
-  data: T,
-  label: string,
-) {
-  const { _id, ...fields } = data;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const M = Model as any;
-  if (_id) {
-    const doc = await M.findByIdAndUpdate(_id, fields, { returnDocument: "after", runValidators: true, overwrite: false }).lean();
-    if (!doc) throw new Error("Élément introuvable");
-    await recordRevision(entity, doc._id, "update", doc, label);
-    return String(doc._id);
-  }
-  const doc = await M.create(fields);
-  await recordRevision(entity, doc._id, "create", doc.toObject(), label);
-  return String(doc._id);
-}
-
-async function deleteVersioned(entity: VersionedEntity, Model: typeof Skill | typeof Experience | typeof Project, id: string, label: (doc: Record<string, unknown>) => string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const doc = await (Model as any).findByIdAndDelete(id).lean();
-  if (doc) await recordRevision(entity, doc._id, "delete", doc, label(doc));
-}
-
 function failure(error: unknown): ActionResult<never> {
-  if (error && typeof error === "object" && "code" in error && error.code === 11000) {
+  if (error && typeof error === "object" && "code" in error && error.code === "23505") {
     return { ok: false, error: "Cette valeur existe déjà (slug en double ?)." };
   }
   console.error(error);
   return { ok: false, error: error instanceof Error ? error.message : "Erreur inattendue" };
+}
+
+/** Inserts or updates a row, then records the new state as a version. */
+async function saveVersioned(entity: VersionedEntity, data: { id?: string } & Record<string, unknown>, label: string) {
+  const { id, ...fields } = data;
+  const table = db().from(ENTITY_TABLES[entity]);
+  const row = id
+    ? must(await table.update(toRow(fields)).eq("id", id).select().maybeSingle())
+    : must(await table.insert(toRow(fields)).select().single());
+  if (!row) throw new Error("Élément introuvable");
+  await recordRevision(entity, row.id, id ? "update" : "create", row, label);
+  return row.id as string;
+}
+
+/** Deletes a row and keeps its last state as a "delete" version, so it can be recreated. */
+async function deleteVersioned(entity: VersionedEntity, id: string, label: (row: Record<string, unknown>) => string) {
+  const row = must(await db().from(ENTITY_TABLES[entity]).delete().eq("id", id).select().maybeSingle());
+  if (row) await recordRevision(entity, row.id, "delete", row, label(row));
 }
 
 /* Profile */
@@ -99,14 +88,8 @@ export async function saveProfile(input: unknown): Promise<ActionResult> {
   const parsed = profileInput.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   try {
-    await connectDB();
-    const doc = await Profile.findOneAndUpdate({}, parsed.data, {
-      upsert: true,
-      returnDocument: "after",
-      runValidators: true,
-      setDefaultsOnInsert: true,
-    }).lean();
-    await recordRevision("profile", doc!._id, "update", doc, parsed.data.name);
+    const existing = must(await db().from("profile").select("id").order("created_at").limit(1).maybeSingle());
+    await saveVersioned("profile", { ...parsed.data, id: existing?.id }, parsed.data.name);
     contentChanged();
     return { ok: true, message: "Profil enregistré" };
   } catch (error) {
@@ -121,8 +104,7 @@ export async function saveSkill(input: unknown): Promise<ActionResult<{ id: stri
   const parsed = skillInput.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   try {
-    await connectDB();
-    const id = await saveVersioned("skill", Skill, parsed.data, parsed.data.name);
+    const id = await saveVersioned("skill", parsed.data, parsed.data.name);
     contentChanged();
     return { ok: true, data: { id }, message: "Compétence enregistrée" };
   } catch (error) {
@@ -132,11 +114,14 @@ export async function saveSkill(input: unknown): Promise<ActionResult<{ id: stri
 
 export async function deleteSkill(id: string): Promise<ActionResult> {
   await requireAdmin();
-  if (!isId(id)) return { ok: false, error: "Identifiant invalide" };
-  await connectDB();
-  await deleteVersioned("skill", Skill, id, (d) => String(d.name));
-  contentChanged();
-  return { ok: true, message: "Compétence supprimée" };
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Identifiant invalide" };
+  try {
+    await deleteVersioned("skill", id, (r) => String(r.name));
+    contentChanged();
+    return { ok: true, message: "Compétence supprimée" };
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 /* Experience */
@@ -146,8 +131,7 @@ export async function saveExperience(input: unknown): Promise<ActionResult<{ id:
   const parsed = experienceInput.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   try {
-    await connectDB();
-    const id = await saveVersioned("experience", Experience, parsed.data, parsed.data.company);
+    const id = await saveVersioned("experience", parsed.data, parsed.data.company);
     contentChanged();
     return { ok: true, data: { id }, message: "Expérience enregistrée" };
   } catch (error) {
@@ -157,11 +141,14 @@ export async function saveExperience(input: unknown): Promise<ActionResult<{ id:
 
 export async function deleteExperience(id: string): Promise<ActionResult> {
   await requireAdmin();
-  if (!isId(id)) return { ok: false, error: "Identifiant invalide" };
-  await connectDB();
-  await deleteVersioned("experience", Experience, id, (d) => String(d.company));
-  contentChanged();
-  return { ok: true, message: "Expérience supprimée" };
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Identifiant invalide" };
+  try {
+    await deleteVersioned("experience", id, (r) => String(r.company));
+    contentChanged();
+    return { ok: true, message: "Expérience supprimée" };
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 /* Projects */
@@ -171,8 +158,7 @@ export async function saveProject(input: unknown): Promise<ActionResult<{ id: st
   const parsed = projectInput.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   try {
-    await connectDB();
-    const id = await saveVersioned("project", Project, parsed.data, parsed.data.title.fr || parsed.data.title.en);
+    const id = await saveVersioned("project", parsed.data, parsed.data.title.fr || parsed.data.title.en);
     contentChanged();
     return { ok: true, data: { id }, message: "Projet enregistré" };
   } catch (error) {
@@ -182,21 +168,24 @@ export async function saveProject(input: unknown): Promise<ActionResult<{ id: st
 
 export async function deleteProject(id: string): Promise<ActionResult> {
   await requireAdmin();
-  if (!isId(id)) return { ok: false, error: "Identifiant invalide" };
-  await connectDB();
-  await deleteVersioned("project", Project, id, (d) => {
-    const title = d.title as { en?: string; fr?: string } | undefined;
-    return title?.fr || title?.en || String(d.slug);
-  });
-  contentChanged();
-  return { ok: true, message: "Projet supprimé" };
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Identifiant invalide" };
+  try {
+    await deleteVersioned("project", id, (r) => {
+      const title = r.title as { en?: string; fr?: string } | undefined;
+      return title?.fr || title?.en || String(r.slug);
+    });
+    contentChanged();
+    return { ok: true, message: "Projet supprimé" };
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 /* Versioning */
 
 export async function restoreVersion(revisionId: string): Promise<ActionResult> {
   await requireAdmin();
-  if (!isId(revisionId)) return { ok: false, error: "Identifiant invalide" };
+  if (!uuid.safeParse(revisionId).success) return { ok: false, error: "Identifiant invalide" };
   try {
     await restoreRevision(revisionId);
     contentChanged();
@@ -210,31 +199,30 @@ export async function restoreVersion(revisionId: string): Promise<ActionResult> 
 
 export async function setMessageRead(id: string, read: boolean): Promise<ActionResult> {
   await requireAdmin();
-  if (!isId(id)) return { ok: false, error: "Identifiant invalide" };
-  await connectDB();
-  await Message.updateOne({ _id: id }, { read });
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Identifiant invalide" };
+  must(await db().from("messages").update({ read }).eq("id", id));
   refresh();
   return { ok: true };
 }
 
 export async function deleteMessage(id: string): Promise<ActionResult> {
   await requireAdmin();
-  if (!isId(id)) return { ok: false, error: "Identifiant invalide" };
-  await connectDB();
-  await Message.deleteOne({ _id: id });
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Identifiant invalide" };
+  must(await db().from("messages").delete().eq("id", id));
   refresh();
   return { ok: true, message: "Message supprimé" };
 }
 
 /* Uploads */
 
-export async function getUploadSignature(folder: string) {
+export async function getUploadUrl(folder: string, fileName: string) {
   await requireAdmin();
-  if (!cloudinaryConfigured()) {
-    return { ok: false as const, error: "Cloudinary n’est pas configuré (variables CLOUDINARY_* manquantes)." };
-  }
   if (!(UPLOAD_FOLDERS as readonly string[]).includes(folder)) {
     return { ok: false as const, error: "Dossier non autorisé" };
   }
-  return { ok: true as const, data: signUploadParams(folder as UploadFolder) };
+  try {
+    return { ok: true as const, data: await createUpload(folder as UploadFolder, fileName) };
+  } catch (error) {
+    return { ok: false as const, error: error instanceof Error ? error.message : "Envoi impossible" };
+  }
 }

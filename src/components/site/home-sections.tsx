@@ -55,7 +55,7 @@ export function Skills({ skills, dict }: { skills: SkillDTO[]; dict: Dictionary 
             </h3>
             <ul className="mt-2">
               {items.map((s) => (
-                <li key={s._id} className="flex items-center justify-between gap-4 py-2">
+                <li key={s.id} className="flex items-center justify-between gap-4 py-2">
                   <span>{s.name}</span>
                   <span className="flex gap-[3px]" role="img" aria-label={dict.skills.level[s.level]} title={dict.skills.level[s.level]}>
                     {[1, 2, 3, 4, 5].map((n) => (
@@ -90,7 +90,7 @@ export function FeaturedProjects({ locale, projects, dict }: { locale: Locale; p
     >
       <div className="grid gap-x-8 gap-y-14 md:grid-cols-2">
         {projects.map((p, i) => (
-          <ProjectCard key={p._id} project={p} locale={locale} viewLabel={dict.projects.view} priority={i < 2} />
+          <ProjectCard key={p.id} project={p} locale={locale} viewLabel={dict.projects.view} priority={i < 2} />
         ))}
       </div>
     </Section>

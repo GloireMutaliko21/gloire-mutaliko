@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, serialize } from "@/lib/db";
+import { fromRows } from "@/lib/rows";
+import { db, must } from "@/lib/supabase/server";
 import type { MessageDTO } from "@/lib/types";
-import { Message } from "@/models";
 import { MessagesList } from "@/components/admin/messages-list";
 import { PageHeader } from "@/components/admin/page-header";
 
@@ -11,10 +11,11 @@ export const metadata = { title: "Messages" };
 export default async function MessagesPage({ searchParams }: PageProps<"/admin/messages">) {
   await requireAdmin();
   const filter = (await searchParams).filter === "unread" ? "unread" : "all";
-  await connectDB();
-  const [messages, unread] = await Promise.all([
-    Message.find(filter === "unread" ? { read: false } : {}).sort({ createdAt: -1 }).limit(200).lean(),
-    Message.countDocuments({ read: false }),
+  let query = db().from("messages").select("*").order("created_at", { ascending: false }).limit(200);
+  if (filter === "unread") query = query.eq("read", false);
+  const [messages, { count: unread }] = await Promise.all([
+    query.then(must),
+    db().from("messages").select("id", { count: "exact", head: true }).eq("read", false),
   ]);
 
   return (
@@ -23,7 +24,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/admin/m
         <div role="group" aria-label="Filtre" className="flex rounded-[4px] border border-line-strong bg-surface p-0.5 text-sm">
           {[
             { key: "all", label: "Tous" },
-            { key: "unread", label: `Non lus (${unread})` },
+            { key: "unread", label: `Non lus (${unread ?? 0})` },
           ].map((f) => (
             <Link
               key={f.key}
@@ -36,7 +37,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/admin/m
           ))}
         </div>
       </PageHeader>
-      <MessagesList messages={serialize<MessageDTO[]>(messages)} />
+      <MessagesList messages={fromRows<MessageDTO>(messages)} />
     </>
   );
 }

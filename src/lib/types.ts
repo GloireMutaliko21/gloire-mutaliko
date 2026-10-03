@@ -2,10 +2,11 @@ import type { L10n } from "./i18n";
 
 export type SkillCategory = "frontend" | "backend" | "devops" | "data" | "tools";
 
-export type Asset = { url: string; publicId: string; width?: number; height?: number; alt?: L10n };
+/** A file in the Storage bucket: public URL plus its path inside the bucket. */
+export type Asset = { url: string; path: string; width?: number; height?: number; alt?: L10n };
 
 export type ProfileDTO = {
-  _id?: string;
+  id?: string;
   name: string;
   role: L10n;
   headline: L10n;
@@ -16,14 +17,14 @@ export type ProfileDTO = {
   available: boolean;
   availability: L10n;
   avatar: Asset | null;
-  cv: { url: string; publicId: string; fileName: string } | null;
+  cv: { url: string; path: string; fileName: string } | null;
   socials: { label: string; url: string }[];
   calLink: string;
   updatedAt?: string;
 };
 
 export type SkillDTO = {
-  _id: string;
+  id: string;
   name: string;
   category: SkillCategory;
   level: number;
@@ -31,7 +32,7 @@ export type SkillDTO = {
 };
 
 export type ExperienceDTO = {
-  _id: string;
+  id: string;
   company: string;
   companyUrl: string;
   role: L10n;
@@ -45,7 +46,7 @@ export type ExperienceDTO = {
 };
 
 export type ProjectDTO = {
-  _id: string;
+  id: string;
   slug: string;
   title: L10n;
   summary: L10n;
@@ -62,7 +63,7 @@ export type ProjectDTO = {
 };
 
 export type MessageDTO = {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   company: string;
@@ -73,9 +74,11 @@ export type MessageDTO = {
   createdAt: string;
 };
 
+export type VersionedEntity = "profile" | "skill" | "experience" | "project";
+
 export type RevisionDTO = {
-  _id: string;
-  entity: "profile" | "skill" | "experience" | "project";
+  id: string;
+  entity: VersionedEntity;
   entityId: string;
   version: number;
   action: "create" | "update" | "delete" | "restore";

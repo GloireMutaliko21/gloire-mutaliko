@@ -21,15 +21,15 @@ export function MessagesList({ messages }: { messages: MessageDTO[] }) {
   return (
     <ul className={`${cardClass} divide-y divide-line`}>
       {messages.map((m) => {
-        const expanded = open === m._id;
+        const expanded = open === m.id;
         return (
-          <li key={m._id} className={m.read ? "" : "bg-accent-wash/40"}>
+          <li key={m.id} className={m.read ? "" : "bg-accent-wash/40"}>
             <button
               type="button"
               aria-expanded={expanded}
               onClick={() => {
-                setOpen(expanded ? null : m._id);
-                if (!m.read && !expanded) start(() => setMessageRead(m._id, true).then(() => {}));
+                setOpen(expanded ? null : m.id);
+                if (!m.read && !expanded) start(() => setMessageRead(m.id, true).then(() => {}));
               }}
               className="flex w-full items-start gap-3 px-5 py-4 text-left hover:bg-paper"
             >
@@ -58,10 +58,10 @@ export function MessagesList({ messages }: { messages: MessageDTO[] }) {
                   <a href={`mailto:${m.email}?subject=${encodeURIComponent(m.locale === "fr" ? "Re : votre message" : "Re: your message")}`} className={buttonClass.primary}>
                     <Reply size={15} aria-hidden /> Répondre
                   </a>
-                  <button type="button" disabled={pending} onClick={() => start(() => setMessageRead(m._id, !m.read).then(() => {}))} className={buttonClass.secondary}>
+                  <button type="button" disabled={pending} onClick={() => start(() => setMessageRead(m.id, !m.read).then(() => {}))} className={buttonClass.secondary}>
                     {m.read ? "Marquer non lu" : "Marquer lu"}
                   </button>
-                  <ConfirmButton label="Supprimer" confirmLabel="Supprimer définitivement" disabled={pending} onConfirm={() => start(() => deleteMessage(m._id).then(() => setOpen(null)))} />
+                  <ConfirmButton label="Supprimer" confirmLabel="Supprimer définitivement" disabled={pending} onConfirm={() => start(() => deleteMessage(m.id).then(() => setOpen(null)))} />
                 </div>
               </div>
             )}

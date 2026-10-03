@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Types } from "mongoose";
 import { ArrowLeft } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, serialize } from "@/lib/db";
-import { Experience } from "@/models";
+import { fromRow } from "@/lib/rows";
+import { db, must } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/admin/page-header";
 import { ExperienceEditor } from "@/components/admin/experience-editor";
 import { emptyExperience, type ExperienceDraft } from "@/components/admin/defaults";
@@ -16,11 +15,10 @@ export default async function ExperienceEditPage({ params }: PageProps<"/admin/e
   const { id } = await params;
   let initial: ExperienceDraft = emptyExperience;
   if (id !== "new") {
-    if (!Types.ObjectId.isValid(id)) notFound();
-    await connectDB();
-    const doc = await Experience.findById(id).lean();
-    if (!doc) notFound();
-    initial = serialize<ExperienceDraft>(doc);
+    if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+    const row = must(await db().from("experiences").select("*").eq("id", id).maybeSingle());
+    if (!row) notFound();
+    initial = fromRow<ExperienceDraft>(row);
   }
 
   return (

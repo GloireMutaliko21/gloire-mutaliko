@@ -1,6 +1,6 @@
 import type { ExperienceDTO, ProjectDTO } from "@/lib/types";
 
-export type ExperienceDraft = Omit<ExperienceDTO, "_id"> & { _id?: string };
+export type ExperienceDraft = Omit<ExperienceDTO, "id"> & { id?: string };
 
 export const emptyExperience: ExperienceDraft = {
   company: "",
@@ -15,7 +15,7 @@ export const emptyExperience: ExperienceDraft = {
   order: 0,
 };
 
-export type ProjectDraft = Omit<ProjectDTO, "_id"> & { _id?: string };
+export type ProjectDraft = Omit<ProjectDTO, "id"> & { id?: string };
 
 export const emptyProject = (): ProjectDraft => ({
   slug: "",

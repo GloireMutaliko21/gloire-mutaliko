@@ -1,8 +1,7 @@
 import { createHash } from "node:crypto";
-import { connectDB } from "@/lib/db";
 import { isLocale } from "@/lib/i18n";
 import { clientCountry, clientIp, rateLimit } from "@/lib/rate-limit";
-import { PageView } from "@/models";
+import { db } from "@/lib/supabase/server";
 
 const BOT = /bot|crawl|spider|slurp|preview|headless|lighthouse|facebookexternalhit|embedly|monitor/i;
 
@@ -39,17 +38,13 @@ export async function POST(request: Request) {
   } catch {}
 
   const segment = path.split("/")[1];
-  try {
-    await connectDB();
-    await PageView.create({
-      path,
-      locale: isLocale(segment) ? segment : "",
-      country: clientCountry(request.headers),
-      visitor,
-      referrer,
-    });
-  } catch (error) {
-    console.error("track: could not record page view", error);
-  }
+  const { error } = await db().from("page_views").insert({
+    path,
+    locale: isLocale(segment) ? segment : "",
+    country: clientCountry(request.headers),
+    visitor,
+    referrer,
+  });
+  if (error) console.error("track: could not record page view", error.message);
   return new Response(null, { status: 204 });
 }

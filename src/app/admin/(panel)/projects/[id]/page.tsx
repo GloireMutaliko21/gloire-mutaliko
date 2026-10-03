@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Types } from "mongoose";
 import { ArrowLeft } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, serialize } from "@/lib/db";
-import { Project } from "@/models";
+import { fromRow } from "@/lib/rows";
+import { db, must } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/admin/page-header";
 import { ProjectEditor } from "@/components/admin/project-editor";
 import { emptyProject, type ProjectDraft } from "@/components/admin/defaults";
@@ -16,11 +15,10 @@ export default async function ProjectEditPage({ params }: PageProps<"/admin/proj
   const { id } = await params;
   let initial: ProjectDraft = emptyProject();
   if (id !== "new") {
-    if (!Types.ObjectId.isValid(id)) notFound();
-    await connectDB();
-    const doc = await Project.findById(id).lean();
-    if (!doc) notFound();
-    initial = serialize<ProjectDraft>(doc);
+    if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+    const row = must(await db().from("projects").select("*").eq("id", id).maybeSingle());
+    if (!row) notFound();
+    initial = fromRow<ProjectDraft>(row);
   }
 
   return (

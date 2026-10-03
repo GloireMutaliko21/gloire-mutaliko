@@ -1,8 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
-import { defaultProfile } from "@/lib/content";
-import { connectDB, serialize } from "@/lib/db";
-import type { ProfileDTO } from "@/lib/types";
-import { Profile } from "@/models";
+import { readProfile } from "@/lib/content";
 import { PageHeader } from "@/components/admin/page-header";
 import { ProfileEditor } from "@/components/admin/profile-editor";
 
@@ -10,9 +7,7 @@ export const metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
   await requireAdmin();
-  await connectDB();
-  const doc = await Profile.findOne().lean();
-  const profile: ProfileDTO = { ...defaultProfile, ...(doc ? serialize<ProfileDTO>(doc) : {}) };
+  const profile = await readProfile();
 
   return (
     <>
