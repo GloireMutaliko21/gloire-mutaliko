@@ -3,29 +3,40 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, FileText, ImagePlus, Trash2, Upload } from "lucide-react";
-import { getUploadSignature } from "@/app/admin/actions";
+import { getUploadUrl } from "@/app/admin/actions";
+import { browserClient } from "@/lib/supabase/browser";
 import type { Asset } from "@/lib/types";
 import { buttonClass, inputClass } from "./styles";
 
-type Uploaded = { secure_url: string; public_id: string; width?: number; height?: number; original_filename?: string; format?: string };
+type Uploaded = { url: string; path: string; width?: number; height?: number };
 
-async function uploadToCloudinary(file: File, folder: string, resourceType: "image" | "raw"): Promise<Uploaded> {
-  const sig = await getUploadSignature(folder);
-  if (!sig.ok) throw new Error(sig.error);
-  const body = new FormData();
-  body.append("file", file);
-  body.append("api_key", sig.data.apiKey);
-  body.append("timestamp", String(sig.data.timestamp));
-  body.append("signature", sig.data.signature);
-  body.append("folder", sig.data.folder);
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.data.cloudName}/${resourceType}/upload`, { method: "POST", body });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.error?.message ?? "Échec de l’envoi");
-  return json;
+function imageSize(file: File): Promise<{ width?: number; height?: number }> {
+  if (!file.type.startsWith("image/")) return Promise.resolve({});
+  return createImageBitmap(file)
+    .then((bitmap) => {
+      const size = { width: bitmap.width, height: bitmap.height };
+      bitmap.close();
+      return size;
+    })
+    .catch(() => ({}));
 }
 
-/** Ordered image list with direct Cloudinary uploads, reordering and per-language alt text. */
-export function ImagesField({ value, onChange, max = 10, folder = "portfolio/projects" }: { value: Asset[]; onChange: (v: Asset[]) => void; max?: number; folder?: string }) {
+/** Sends a file straight to the Supabase Storage bucket through a signed upload URL. */
+async function uploadToBucket(file: File, folder: string): Promise<Uploaded> {
+  if (file.size > 10 * 1024 * 1024) throw new Error(`${file.name} dépasse 10 Mo.`);
+  const signed = await getUploadUrl(folder, file.name);
+  if (!signed.ok) throw new Error(signed.error);
+  const { bucket, path, token, publicUrl } = signed.data;
+  const [{ error }, size] = await Promise.all([
+    browserClient().storage.from(bucket).uploadToSignedUrl(path, token, file, { contentType: file.type }),
+    imageSize(file),
+  ]);
+  if (error) throw new Error(error.message || "Échec de l’envoi");
+  return { url: publicUrl, path, ...size };
+}
+
+/** Ordered image list with direct uploads to the Storage bucket, reordering and per-language alt text. */
+export function ImagesField({ value, onChange, max = 10, folder = "projects" }: { value: Asset[]; onChange: (v: Asset[]) => void; max?: number; folder?: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +51,8 @@ export function ImagesField({ value, onChange, max = 10, folder = "portfolio/pro
     const added: Asset[] = [];
     for (const file of picked) {
       try {
-        const up = await uploadToCloudinary(file, folder, "image");
-        added.push({ url: up.secure_url, publicId: up.public_id, width: up.width, height: up.height, alt: { en: "", fr: "" } });
+        const up = await uploadToBucket(file, folder);
+        added.push({ ...up, alt: { en: "", fr: "" } });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Échec de l’envoi");
       }
@@ -139,8 +150,8 @@ export function FileField({
   accept = "application/pdf",
 }: {
   label: string;
-  value: { url: string; publicId: string; fileName: string } | null;
-  onChange: (v: { url: string; publicId: string; fileName: string } | null) => void;
+  value: { url: string; path: string; fileName: string } | null;
+  onChange: (v: { url: string; path: string; fileName: string } | null) => void;
   folder: string;
   accept?: string;
 }) {
@@ -153,9 +164,8 @@ export function FileField({
     setBusy(true);
     setError(null);
     try {
-      // PDFs go up as "image" so Cloudinary can serve and preview them.
-      const up = await uploadToCloudinary(file, folder, "image");
-      onChange({ url: up.secure_url, publicId: up.public_id, fileName: file.name });
+      const up = await uploadToBucket(file, folder);
+      onChange({ url: up.url, path: up.path, fileName: file.name });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Échec de l’envoi");
     } finally {

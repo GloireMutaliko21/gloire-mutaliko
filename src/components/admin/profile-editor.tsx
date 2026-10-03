@@ -21,7 +21,7 @@ export function ProfileEditor({ initial }: { initial: ProfileDTO }) {
         e.preventDefault();
         start(async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { _id, updatedAt, ...data } = p;
+          const { id, updatedAt, ...data } = p;
           setResult(await saveProfile(data));
         });
       }}
@@ -62,8 +62,8 @@ export function ProfileEditor({ initial }: { initial: ProfileDTO }) {
 
       <section className={`${cardClass} space-y-6 p-5 md:p-6`}>
         <h2 className="font-medium">Fichiers</h2>
-        <FileField label="CV (PDF)" value={p.cv} onChange={(v) => set("cv", v)} folder="portfolio/cv" />
-        <SingleImageField label="Photo" value={p.avatar} onChange={(v) => set("avatar", v)} folder="portfolio/profile" />
+        <FileField label="CV (PDF)" value={p.cv} onChange={(v) => set("cv", v)} folder="cv" />
+        <SingleImageField label="Photo" value={p.avatar} onChange={(v) => set("avatar", v)} folder="profile" />
       </section>
 
       <section className={`${cardClass} space-y-4 p-5 md:p-6`}>
