@@ -98,7 +98,7 @@ const en = {
   },
   footer: {
     rights: "All rights reserved.",
-    built: "Built with Next.js, MongoDB and Three.js.",
+    built: "Built with Next.js, Supabase and Three.js.",
   },
   notFound: {
     title: "Page not found",

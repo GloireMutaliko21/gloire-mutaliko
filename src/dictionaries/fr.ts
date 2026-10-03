@@ -100,7 +100,7 @@ const fr: Dictionary = {
   },
   footer: {
     rights: "Tous droits réservés.",
-    built: "Construit avec Next.js, MongoDB et Three.js.",
+    built: "Construit avec Next.js, Supabase et Three.js.",
   },
   notFound: {
     title: "Page introuvable",
